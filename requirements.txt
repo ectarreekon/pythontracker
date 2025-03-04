@@ -1,0 +1,7 @@
+flask
+pymongo
+flask-cors
+python-dotenv
+requests
+pytz
+gunicorn  # For production deployment
