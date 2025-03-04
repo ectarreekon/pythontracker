@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    
+    <link rel="manifest" href="/manifest.json">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        #location-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .tracking-status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .tracking-on { color: green; }
+        .tracking-off { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Location Tracker</h1>
+    
+    <div id="tracking-status" class="tracking-status tracking-off">
+        Tracking: Stopped
+    </div>
+
+    <div id="location-info">
+        Waiting for location...
+    </div>
+    
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        class FastLocationTracker {
+            constructor() {
+                this.deviceId = this.generateDeviceId();
+                this.trackingInterval = null;
+                this.locationInfoDiv = document.getElementById('location-info');
+                this.trackingStatusDiv = document.getElementById('tracking-status');
+                
+                // Initialize map
+                this.map = L.map('map').setView([0, 0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(this.map);
+                
+                this.locationMarker = null;
+            }
+
+            generateDeviceId() {
+                return 'device_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            saveLocation(latitude, longitude) {
+                // Use high-accuracy mode and timeout
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,  // 10 seconds timeout
+                    maximumAge: 0    // Don't use cached location
+                };
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        fetch('/save-location', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                latitude: lat,
+                                longitude: lon,
+                                device_id: this.deviceId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const locationDetails = data.location_details;
+                                
+                                // Update location info display
+                                this.locationInfoDiv.innerHTML = `
+                                    <div>Coordinates: ${lat}, ${lon}</div>
+                                    <div>Address: ${locationDetails.display_name}</div>
+                                    <div>Tracked at: ${new Date().toLocaleString()}</div>
+                                `;
+
+                                // Update map
+                                if (this.locationMarker) {
+                                    this.map.removeLayer(this.locationMarker);
+                                }
+                                this.locationMarker = L.marker([lat, lon]).addTo(this.map);
+                                this.map.setView([lat, lon], 15);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Location save error:', error);
+                            this.locationInfoDiv.textContent = `Error: ${error.message}`;
+                        });
+                    },
+                    (error) => {
+                        console.error('Geolocation error:', error);
+                        this.locationInfoDiv.textContent = `Location Error: ${error.message}`;
+                    },
+                    options
+                );
+            }
+
+            startTracking() {
+                // Stop any existing tracking
+                this.stopTracking();
+
+                // Immediately track first location
+                this.saveLocation();
+
+                // Set up interval tracking every 2 minutes
+                this.trackingInterval = setInterval(() => {
+                    this.saveLocation();
+                }, 2 * 60 * 1000); // Every 2 minutes
+
+                // Update UI
+                this.trackingStatusDiv.textContent = 'Tracking: Active';
+                this.trackingStatusDiv.classList.remove('tracking-off');
+                this.trackingStatusDiv.classList.add('tracking-on');
+            }
+
+            stopTracking() {
+                // Clear existing interval
+                if (this.trackingInterval) {
+                    clearInterval(this.trackingInterval);
+                    this.trackingInterval = null;
+                }
+
+                // Update UI
+                this.trackingStatusDiv.textContent = 'Tracking: Stopped';
+                this.trackingStatusDiv.classList.remove('tracking-on');
+                this.trackingStatusDiv.classList.add('tracking-off');
+            }
+        }
+
+        // Initialize Location Tracker
+        const locationTracker = new FastLocationTracker();
+
+        // Add tracking controls
+        const controlsDiv = document.createElement('div');
+        controlsDiv.innerHTML = `
+            <button id="start-tracking">Start Tracking</button>
+            <button id="stop-tracking">Stop Tracking</button>
+        `;
+        document.body.insertBefore(controlsDiv, document.getElementById('tracking-status'));
+
+        // Event Listeners
+        document.getElementById('start-tracking').addEventListener('click', () => {
+            locationTracker.startTracking();
+        });
+
+        document.getElementById('stop-tracking').addEventListener('click', () => {
+            locationTracker.stopTracking();
+        });
+    </script>
+</body>
+</html>
