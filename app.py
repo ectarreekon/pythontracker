@@ -13,6 +13,9 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# Load Date Time
+utc_time = datetime.now(pytz.UTC)
+
 # MongoDB Atlas Configuration with improved connection handling
 def get_database():
     """
@@ -131,7 +134,7 @@ def save_location():
     location_entry = {
         'latitude': latitude,
         'longitude': longitude,
-        'timestamp': datetime.now(pytz.UTC),
+        'timestamp': utc_time.astimezone(pytz.timezone('Asia/Manila')),
         'device_id': data.get('device_id', 'unknown'),
         'location_details': location_details
     }
