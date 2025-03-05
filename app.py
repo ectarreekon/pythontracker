@@ -130,12 +130,11 @@ def save_location():
     # Perform reverse geocoding
     location_details = reverse_geocode(latitude, longitude)
     
-    # Prepare location entry
-    utc_time = datetime.now(pytz.UTC)
+        
     location_entry = {
         'latitude': latitude,
         'longitude': longitude,
-        'timestamp': utc_time.astimezone(pytz.timezone('Asia/Manila')),
+        'timestamp': datetime.now(pytz.UTC).astimezone(pytz.timezone('Asia/Manila')),
         'device_id': data.get('device_id', 'unknown'),
         'location_details': location_details
     }
