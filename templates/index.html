@@ -78,7 +78,7 @@
                 // Use high-accuracy mode and timeout
                 const options = {
                     enableHighAccuracy: true,
-                    timeout: 10000,  // 10 seconds timeout
+                    timeout: 60000,  // 10 seconds timeout
                     maximumAge: 0    // Don't use cached location
                 };
 
@@ -141,7 +141,7 @@
                 // Set up interval tracking every 2 minutes
                 this.trackingInterval = setInterval(() => {
                     this.saveLocation();
-                }, 2 * 60 * 1000); // Every 2 minutes
+                }, 5 * 60 * 1000); // Every 2 minutes
 
                 // Update UI
                 this.trackingStatusDiv.textContent = 'Tracking: Active';
