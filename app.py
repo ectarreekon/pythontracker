@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load Date Time
-utc_time = datetime.now(pytz.UTC)
+
 
 # MongoDB Atlas Configuration with improved connection handling
 def get_database():
@@ -131,6 +131,7 @@ def save_location():
     location_details = reverse_geocode(latitude, longitude)
     
     # Prepare location entry
+    utc_time = datetime.now(pytz.UTC)
     location_entry = {
         'latitude': latitude,
         'longitude': longitude,
