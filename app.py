@@ -138,7 +138,8 @@ def save_location():
         'device_id': data.get('device_id', 'unknown'),
         'location_details': location_details
     }
-    
+    print(location_entry.device_id)
+    print(location_entry.timestamp)
     try:
         result = locations_collection.insert_one(location_entry)
         return jsonify({
